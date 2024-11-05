@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test
 
 internal class BytesLoaderTest {
     @Test
-    fun loadTest() {
-        TODO("BytesLoaderTest:loadTest")
+    fun addTest() {
+        TODO("BytesLoaderTest:addTest")
     }
 }
