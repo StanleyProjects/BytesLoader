@@ -6,15 +6,11 @@ import sp.gx.core.Maven
 import sp.gx.core.asFile
 import sp.gx.core.assemble
 import sp.gx.core.buildDir
-import sp.gx.core.buildSrc
 import sp.gx.core.check
 import sp.gx.core.create
-import sp.gx.core.dir
 import sp.gx.core.existing
 import sp.gx.core.file
 import sp.gx.core.filled
-import sp.gx.core.getByName
-import sp.gx.core.resolve
 import sp.gx.core.task
 
 version = "0.0.1"
