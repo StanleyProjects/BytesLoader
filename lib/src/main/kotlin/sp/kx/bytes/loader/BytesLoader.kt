@@ -11,7 +11,7 @@ class BytesLoader(
     private val count: Int,
 ) {
     sealed interface Event {
-        data object OnLoad : Event
+        data class OnLoad(val uri: URI) : Event
         data class OnError(val error: Throwable) : Event
     }
 
@@ -48,7 +48,7 @@ class BytesLoader(
             }
             if (info.completed()) {
                 queue.remove(uri)
-                _events.emit(Event.OnLoad)
+                _events.emit(Event.OnLoad(uri = uri))
             }
         }
         loading.set(false)
