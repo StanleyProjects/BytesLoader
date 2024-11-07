@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 class BytesLoader(
     private val factory: BytesWrapper.Factory,
     private val requester: BytesRequester,
+    private val count: Int,
 ) {
     sealed interface Event {
         data object OnLoad : Event
@@ -19,7 +20,7 @@ class BytesLoader(
 
 //    private val count = 2 shl 10
 //    private val count = 2 shl 12
-    private val count = 2 shl 14
+//    private val count = 2 shl 14
 //    private val count = 2 shl 16
 
     private val loading = AtomicBoolean(false)
@@ -30,8 +31,25 @@ class BytesLoader(
         if (!loading.compareAndSet(false, true)) return
         while (true) {
             val (uri, info) = queue.entries.firstOrNull() ?: break
-            // todo try
-            perform(uri = uri, info = info)
+            val wrapper = factory.build(uri = uri)
+            try {
+                info.loaded = load(
+                    uri = uri,
+                    loaded = info.loaded,
+                    wrapper = wrapper,
+                )
+                if (info.completed()) {
+                    wrapper.commit(hash = info.hash)
+                }
+            } catch (error: Throwable) {
+                queue.clear() // todo or queue.remove(uri)
+                _events.emit(Event.OnError(error = error))
+                break
+            }
+            if (info.completed()) {
+                queue.remove(uri)
+                _events.emit(Event.OnLoad)
+            }
         }
         loading.set(false)
     }
@@ -49,29 +67,6 @@ class BytesLoader(
         )
         wrapper.append(bytes = bytes)
         return loaded + bytes.size
-    }
-
-    private suspend fun perform(uri: URI, info: BytesInfo) {
-        // todo suspend ?
-        val wrapper = factory.build(uri = uri)
-        try {
-            info.loaded = load(
-                uri = uri,
-                loaded = info.loaded,
-                wrapper = wrapper,
-            )
-            if (info.completed()) {
-                wrapper.commit(hash = info.hash)
-            }
-        } catch (error: Throwable) {
-            queue.clear() // todo or queue.remove(uri)
-            _events.emit(Event.OnError(error = error))
-            return
-        }
-        if (info.completed()) {
-            queue.remove(uri)
-            _events.emit(Event.OnLoad)
-        }
     }
 
     suspend fun add(
