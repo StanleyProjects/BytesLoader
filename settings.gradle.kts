@@ -1,3 +1,3 @@
 rootProject.name = "BytesLoader"
 
-include("lib")
+include("lib", "sample")
