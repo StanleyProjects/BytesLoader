@@ -3,6 +3,7 @@ package sp.kx.bytes.loader
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import java.net.URI
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
 class BytesLoader(
@@ -18,14 +19,9 @@ class BytesLoader(
     private val _events = MutableSharedFlow<Event>()
     val events = _events.asSharedFlow()
 
-//    private val count = 2 shl 10
-//    private val count = 2 shl 12
-//    private val count = 2 shl 14
-//    private val count = 2 shl 16
-
     private val loading = AtomicBoolean(false)
 
-    private val queue: MutableMap<URI, BytesInfo> = HashMap()
+    private val queue: MutableMap<URI, BytesInfo> = ConcurrentHashMap()
 
     private suspend fun perform() {
         if (!loading.compareAndSet(false, true)) return
