@@ -1,7 +1,7 @@
 package sp.kx.bytes.loader
 
-internal fun mockBytes(size: Int): ByteArray {
+internal fun mockBytes(size: Int = 0, pointer: Int = 0): ByteArray {
     return ByteArray(size) { index ->
-        (size - index).toByte()
+        (size + pointer - index).toByte()
     }
 }

@@ -1,5 +1,6 @@
 package sp.kx.bytes.loader
 
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
@@ -39,7 +40,7 @@ internal class BytesLoaderTest {
                     count = 6,
                 )
                 val events = async {
-                    withTimeout(6.seconds) {
+                    withTimeout(4.seconds) {
                         loader.events.first()
                     }
                 }
@@ -83,9 +84,9 @@ internal class BytesLoaderTest {
                     requester = requester,
                     count = 6,
                 )
-                val job = launch {
+                val finished: Deferred<Unit> = async {
                     runCatching {
-                        withTimeout(6.seconds) {
+                        withTimeout(4.seconds) {
                             loader.events.firstOrNull()
                         }
                     }.fold(
@@ -106,7 +107,7 @@ internal class BytesLoaderTest {
                 }
                 delay(1.seconds)
                 loader.stop()
-                job.join()
+                finished.await()
                 assertTrue(dsts.isEmpty())
             }
         }
@@ -132,7 +133,7 @@ internal class BytesLoaderTest {
                     count = 6,
                 )
                 val events = async {
-                    withTimeout(6.seconds) {
+                    withTimeout(4.seconds) {
                         loader.events.first()
                     }
                 }
@@ -150,6 +151,118 @@ internal class BytesLoaderTest {
                     }
                     else -> error("Event $event is not expected!")
                 }
+            }
+        }
+    }
+
+    @Test
+    fun containsTest() {
+        runTest(timeout = 8.seconds) {
+            withContext(Dispatchers.Default) {
+                val uri = mockURI()
+                val bytes = mockBytes(size = 16)
+                val hash = mockBytes(size = 8)
+                val dsts = mutableMapOf<URI, ByteArray>()
+                val factory: BytesWrapper.Factory = MockBytesWrapperFactory(
+                    dsts = dsts,
+                    hashes = listOf(bytes to hash),
+                )
+                val requester: BytesRequester = MockBytesRequester(
+                    map = mapOf(uri to bytes),
+                    delay = 1.seconds,
+                )
+                val loader = BytesLoader(
+                    factory = factory,
+                    requester = requester,
+                    count = 6,
+                )
+                val events = async {
+                    withTimeout(4.seconds) {
+                        loader.events.first()
+                    }
+                }
+                launch(Dispatchers.Default) {
+                    loader.add(
+                        uri = uri,
+                        size = bytes.size.toLong(),
+                        hash = hash,
+                    )
+                }
+                launch(Dispatchers.Default) {
+                    loader.add(
+                        uri = uri,
+                        size = bytes.size.toLong(),
+                        hash = hash,
+                    )
+                }
+                when (val event = events.await()) {
+                    is BytesLoader.Event.OnLoad -> {
+                        assertEquals(uri, event.uri)
+                        val it = dsts[uri] ?: error("No bytes by $uri!")
+                        assertTrue(it.contentEquals(bytes))
+                    }
+                    else -> error("Event $event is not expected!")
+                }
+            }
+        }
+    }
+
+    @Test
+    fun loadingTest() {
+        runTest(timeout = 8.seconds) {
+            withContext(Dispatchers.Default) {
+                val u1 = mockURI(1)
+                val u2 = mockURI(2)
+                check(u1 != u2)
+                val b1 = mockBytes(size = 14, pointer = 1)
+                val b2 = mockBytes(size = 15, pointer = 2)
+                check(!b1.contentEquals(b2))
+                val h1 = mockBytes(size = 8, pointer = 1)
+                val h2 = mockBytes(size = 8, pointer = 2)
+                check(!h1.contentEquals(h2))
+                val dsts = mutableMapOf<URI, ByteArray>()
+                val factory: BytesWrapper.Factory = MockBytesWrapperFactory(
+                    dsts = dsts,
+                    hashes = listOf(b1 to h1, b2 to h2),
+                )
+                val requester: BytesRequester = MockBytesRequester(
+                    map = mapOf(u1 to b1, u2 to b2),
+                    delay = 1.seconds,
+                )
+                val loader = BytesLoader(
+                    factory = factory,
+                    requester = requester,
+                    count = 6,
+                )
+                val finished: Deferred<Unit> = async {
+                    withTimeout(7.seconds) {
+                        val e1 = loader.events.first()
+                        check(e1 is BytesLoader.Event.OnLoad)
+                        assertEquals(u1, e1.uri)
+                        assertTrue(b1.contentEquals(dsts[u1] ?: error("No bytes by $u1!")))
+                        val e2 = loader.events.first()
+                        check(e2 is BytesLoader.Event.OnLoad)
+                        assertEquals(u2, e2.uri)
+                        assertTrue(b2.contentEquals(dsts[u2] ?: error("No bytes by $u2!")))
+                    }
+                }
+                launch(Dispatchers.Default) {
+                    loader.add(
+                        uri = u1,
+                        size = b1.size.toLong(),
+                        hash = h1,
+                    )
+                }
+                delay(1.seconds)
+                launch(Dispatchers.Default) {
+                    loader.add(
+                        uri = u2,
+                        size = b2.size.toLong(),
+                        hash = h2,
+                    )
+                }
+                finished.await()
+                assertEquals(2, dsts.size)
             }
         }
     }
