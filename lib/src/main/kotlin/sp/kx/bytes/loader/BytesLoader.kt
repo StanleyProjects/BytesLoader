@@ -1,6 +1,7 @@
 package sp.kx.bytes.loader
 
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import java.net.URI
 import java.util.concurrent.ConcurrentHashMap
@@ -18,6 +19,10 @@ class BytesLoader(
 
     private val _events = MutableSharedFlow<Event>()
     val events = _events.asSharedFlow()
+
+    sealed interface State
+
+    private val _states = MutableStateFlow<State>(TODO())
 
     private val loading = AtomicBoolean(false)
 
