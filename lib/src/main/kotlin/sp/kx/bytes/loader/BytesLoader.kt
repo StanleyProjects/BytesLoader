@@ -1,10 +1,11 @@
 package sp.kx.bytes.loader
 
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.net.URI
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicBoolean
 
 class BytesLoader(
     private val factory: BytesWrapper.Factory,
@@ -19,14 +20,30 @@ class BytesLoader(
     private val _events = MutableSharedFlow<Event>()
     val events = _events.asSharedFlow()
 
-    private val loading = AtomicBoolean(false)
+    data class State(
+        val queue: Map<URI, BytesLoaded>,
+        val current: URI,
+    )
+
+    private val _states = MutableStateFlow<State?>(null)
+    val states = _states.asStateFlow()
 
     private val queue: MutableMap<URI, BytesInfo> = ConcurrentHashMap()
 
     private suspend fun perform() {
-        if (!loading.compareAndSet(false, true)) return
+        if (_states.value != null) return
         while (true) {
-            val (uri, info) = queue.entries.firstOrNull() ?: break
+            val entries = queue.entries.toList()
+            val (uri, info) = entries.firstOrNull() ?: break
+            _states.value = State(
+                queue = entries.associate { (key, value) ->
+                    key to BytesLoaded(
+                        size = value.size,
+                        loaded = value.loaded,
+                    )
+                },
+                current = uri,
+            )
             val wrapper = factory.build(uri = uri)
             try {
                 info.loaded = load(
@@ -47,7 +64,7 @@ class BytesLoader(
                 _events.emit(Event.OnLoad(uri = uri))
             }
         }
-        loading.set(false)
+        _states.value = null
     }
 
     private fun load(

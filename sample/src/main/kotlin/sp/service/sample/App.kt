@@ -2,8 +2,10 @@ package sp.service.sample
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import sp.kx.bytes.loader.BytesLoader
@@ -12,16 +14,12 @@ import java.io.File
 import java.net.URI
 import java.security.MessageDigest
 
-private suspend fun <T : Any> Flow<T?>.req(): T {
-    while (true) return firstOrNull() ?: continue
-}
-
 fun main() {
     runBlocking {
         val uri = URI("foobar:uri")
         val file = File("/tmp").resolve(uri.toString())
         file.delete()
-        file.writeBytes("foobar:bytes".toByteArray())
+        file.writeBytes("foobar:bytes:1".toByteArray())
         val md = MessageDigest.getInstance("md5")
         val root = File("/tmp/BytesLoader")
         val factory: BytesWrapper.Factory = FileBytesWrapper.Factory(
@@ -33,11 +31,20 @@ fun main() {
             requester = SampleBytesRequester(
                 map = mapOf(uri to file.readBytes()),
             ),
-            count = 2,
+            count = 3,
         )
         val events = async(Dispatchers.Default) {
             withTimeout(5_000) {
-                loader.events.req()
+                loader.events.first()
+            }
+        }
+        val job = launch(Dispatchers.Default) {
+            loader.states.collect { state ->
+                if (state == null) {
+                    println("no state")
+                } else {
+                    println("state: $state")
+                }
             }
         }
         println("Try load: $uri")
@@ -57,5 +64,7 @@ fun main() {
                 if (!it.readBytes().contentEquals(file.readBytes())) TODO()
             }
         }
+        delay(1_000)
+        job.cancel()
     }
 }

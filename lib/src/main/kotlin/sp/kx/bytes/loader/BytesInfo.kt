@@ -1,7 +1,7 @@
 package sp.kx.bytes.loader
 
 internal class BytesInfo(
-    private val size: Long,
+    val size: Long,
     val hash: ByteArray,
 ) {
     var loaded: Long = 0
