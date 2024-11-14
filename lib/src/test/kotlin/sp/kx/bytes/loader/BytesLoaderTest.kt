@@ -1,17 +1,22 @@
 package sp.kx.bytes.loader
 
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectIndexed
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.net.URI
@@ -44,6 +49,45 @@ internal class BytesLoaderTest {
                         loader.events.first()
                     }
                 }
+                val states: Deferred<Unit> = async(start = CoroutineStart.UNDISPATCHED) {
+                    withTimeout(4.seconds) {
+                        loader.states.take(5).collectIndexed { index, state ->
+                            when (index) {
+                                0 -> {
+                                    assertNull(state)
+                                }
+                                1 -> {
+                                    checkNotNull(state)
+                                    val expected = mockState(
+                                        uri = uri,
+                                        bl = BytesLoaded(size = 16, loaded = 0),
+                                    )
+                                    state.assert(expected)
+                                }
+                                2 -> {
+                                    checkNotNull(state)
+                                    val expected = mockState(
+                                        uri = uri,
+                                        bl = BytesLoaded(size = 16, loaded = 6),
+                                    )
+                                    state.assert(expected)
+                                }
+                                3 -> {
+                                    checkNotNull(state)
+                                    val expected = mockState(
+                                        uri = uri,
+                                        bl = BytesLoaded(size = 16, loaded = 12),
+                                    )
+                                    state.assert(expected)
+                                }
+                                4 -> {
+                                    assertNull(state)
+                                }
+                                else -> error("Index $index is unexpected!")
+                            }
+                        }
+                    }
+                }
                 launch(Dispatchers.Default) {
                     loader.add(
                         uri = uri,
@@ -59,6 +103,7 @@ internal class BytesLoaderTest {
                     }
                     else -> error("Event $event is not expected!")
                 }
+                states.await()
             }
         }
     }
@@ -264,6 +309,16 @@ internal class BytesLoaderTest {
                 finished.await()
                 assertEquals(2, dsts.size)
             }
+        }
+    }
+
+    companion object {
+        private fun BytesLoader.State.assert(that: BytesLoader.State) {
+            assertEquals(that.queue.size, this.queue.size)
+            that.queue.forEach { (key, value) ->
+                assertEquals(value, this.queue[key])
+            }
+            assertEquals(that.current, this.current)
         }
     }
 }
