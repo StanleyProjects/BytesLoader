@@ -20,7 +20,7 @@ task("checkLicense") {
         val author = "Stanley Wintergreen" // todo
         file("LICENSE").check(
             expected = emptySet(),
-            regexes = setOf("^Copyright 2\\d{3} $author${'$'}".toRegex()),
+            regexes = setOf("^Copyright 2\\d{3} $author$".toRegex()),
             report = buildDir()
                 .dir("reports/analysis/license")
                 .asFile("index.html"),
