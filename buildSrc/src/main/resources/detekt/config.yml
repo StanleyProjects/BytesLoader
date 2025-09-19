@@ -1,0 +1,8 @@
+build:
+  maxIssues: 0
+
+processors:
+  active: false
+
+console-reports:
+  active: false

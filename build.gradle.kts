@@ -1,7 +1,7 @@
-import sp.gx.core.asFile
-import sp.gx.core.buildDir
-import sp.gx.core.buildSrc
-import sp.gx.core.check
+import sp.kx.gradlex.asFile
+import sp.kx.gradlex.buildDir
+import sp.kx.gradlex.buildSrc
+import sp.kx.gradlex.check
 
 buildscript {
     repositories.mavenCentral()
@@ -20,7 +20,7 @@ task("checkLicense") {
         val author = "Stanley Wintergreen" // todo
         file("LICENSE").check(
             expected = emptySet(),
-            regexes = setOf("^Copyright 2\\d{3} $author${'$'}".toRegex()),
+            regexes = setOf("^Copyright 2\\d{3} $author$".toRegex()),
             report = buildDir()
                 .dir("reports/analysis/license")
                 .asFile("index.html"),

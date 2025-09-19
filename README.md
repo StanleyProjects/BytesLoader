@@ -5,9 +5,9 @@ A tool for getting bytes in parts.
 
 ## Unstable
 
-![version](https://img.shields.io/static/v1?label=version&message=0.2.0u-SNAPSHOT&labelColor=212121&color=2962ff&style=flat)
-
-- [Maven](https://s01.oss.sonatype.org/content/repositories/snapshots/com/github/kepocnhh/BytesLoader/0.2.0u-SNAPSHOT)
+> GitHub [0.3.0u-SNAPSHOT](https://github.com/StanleyProjects/BytesLoader/releases/tag/0.3.0u-SNAPSHOT) release
+>
+> Maven [metadata](https://central.sonatype.com/repository/maven-snapshots/com/github/kepocnhh/BytesLoader/maven-metadata.xml)
 
 ### Build
 ```
@@ -17,11 +17,11 @@ $ gradle lib:assembleUnstableJar
 ### Import
 ```kotlin
 repositories {
-    maven("https://s01.oss.sonatype.org/content/repositories/snapshots")
+    maven("https://central.sonatype.com/repository/maven-snapshots")
 }
 
 dependencies {
-    implementation("com.github.kepocnhh:BytesLoader:0.2.0u-SNAPSHOT")
+    implementation("com.github.kepocnhh:BytesLoader:0.3.0u-SNAPSHOT")
 }
 ```
 
